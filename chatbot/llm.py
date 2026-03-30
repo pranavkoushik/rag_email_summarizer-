@@ -4,7 +4,7 @@ Includes guardrails for input validation, prompt injection defense, and error ha
 """
 
 import re
-from openai import OpenAI, APIError, RateLimitError, APITimeoutError
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -133,19 +133,20 @@ User Question: {query}"""
         )
         return response.choices[0].message.content
 
-    except RateLimitError:
-        return (
-            "The OpenAI API rate limit has been reached. "
-            "Please wait a moment and try again."
-        )
-    except APITimeoutError:
-        return (
-            "The request to OpenAI timed out. "
-            "Please try again in a few seconds."
-        )
-    except APIError as e:
-        return f"An error occurred with the OpenAI API: {e.message}"
-    except Exception:
+    except Exception as e:
+        error_name = type(e).__name__
+        if "RateLimit" in error_name:
+            return (
+                "The OpenAI API rate limit has been reached. "
+                "Please wait a moment and try again."
+            )
+        if "Timeout" in error_name:
+            return (
+                "The request to OpenAI timed out. "
+                "Please try again in a few seconds."
+            )
+        if "APIError" in error_name or "API" in error_name:
+            return f"An error occurred with the OpenAI API: {e}"
         return (
             "An unexpected error occurred while generating a response. "
             "Please try again."
