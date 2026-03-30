@@ -14,7 +14,7 @@ from rag.chunking import chunk_all_emails
 from rag.embeddings import embed_texts
 from rag.vector_store import VectorStore
 from rag.retriever import retrieve, build_context
-from chatbot.llm import get_llm_response
+from chatbot.llm import get_llm_response, GuardrailError
 from chatbot.memory import ChatMemory
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -168,32 +168,33 @@ if query := st.chat_input("Ask a question about your emails..."):
     # Retrieve and respond
     with st.chat_message("assistant"):
         with st.spinner("Searching emails and generating response..."):
-            # Retrieve relevant chunks
-            results = retrieve(
-                query=query,
-                vector_store=st.session_state.vector_store,
-                k=top_k,
-            )
+            try:
+                results = retrieve(
+                    query=query,
+                    vector_store=st.session_state.vector_store,
+                    k=top_k,
+                )
 
-            # Build context
-            context = build_context(results)
+                context = build_context(results)
 
-            # Get LLM response with memory
-            response = get_llm_response(
-                context=context,
-                query=query,
-                chat_history=st.session_state.memory.get_history(),
-            )
+                response = get_llm_response(
+                    context=context,
+                    query=query,
+                    chat_history=st.session_state.memory.get_history(),
+                )
 
-            st.markdown(response)
+                st.markdown(response)
 
-            # Show retrieved sources in expander
-            with st.expander("📎 View Retrieved Sources"):
-                for i, r in enumerate(results, 1):
-                    meta = r.get("metadata", {})
-                    st.markdown(f"**Chunk {i}** — {meta.get('subject', 'N/A')} (from {meta.get('sender', 'N/A')})")
-                    st.text(r["text"][:300] + "..." if len(r["text"]) > 300 else r["text"])
-                    st.divider()
+                with st.expander("📎 View Retrieved Sources"):
+                    for i, r in enumerate(results, 1):
+                        meta = r.get("metadata", {})
+                        st.markdown(f"**Chunk {i}** — {meta.get('subject', 'N/A')} (from {meta.get('sender', 'N/A')})")
+                        st.text(r["text"][:300] + "..." if len(r["text"]) > 300 else r["text"])
+                        st.divider()
+
+            except GuardrailError as e:
+                response = f"⚠️ {e}"
+                st.warning(str(e))
 
     # Update memory
     st.session_state.memory.add_user_message(query)
