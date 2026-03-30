@@ -1,0 +1,11 @@
+streamlit==1.41.1
+sentence-transformers==3.4.1
+faiss-cpu==1.9.0.post1
+openai==1.68.0
+tiktoken==0.8.0
+gdown==5.2.0
+python-dotenv==1.0.1
+beautifulsoup4>=4.11.1,<4.13
+extract-msg>=0.50.0
+chardet==5.2.0
+PyPDF2==3.0.1
